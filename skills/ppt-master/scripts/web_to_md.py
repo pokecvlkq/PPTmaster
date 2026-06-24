@@ -49,6 +49,7 @@ CONFIG = {
     "output_dir": "./projects",
     "timeout": 30,
     "user_agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+    "verify_ssl": True,
     # Specific content identifiers often found in Chinese CMS (Gov/News)
     "content_selectors": [
         {"class_": re.compile(r"tys-main-zt-show", re.I)},
@@ -90,7 +91,7 @@ def fetch_url(url):
 
     try:
         response = requests.get(url, headers=headers,
-                                timeout=CONFIG["timeout"], verify=False)
+                                timeout=CONFIG["timeout"], verify=CONFIG.get("verify_ssl", True))
         response.raise_for_status()
 
         # Enhanced encoding detection (requests handles this well usually, but we force apparent_encoding for Chinese)
@@ -190,7 +191,7 @@ def download_and_rewrite_images(content_element, page_url, image_dir, rel_prefix
                     abs_url,
                     headers={"User-Agent": CONFIG["user_agent"]},
                     timeout=CONFIG["timeout"],
-                    verify=False,
+                    verify=CONFIG.get("verify_ssl", True),
                 )
                 resp.raise_for_status()
                 filename = build_image_filename(
@@ -698,8 +699,12 @@ def main():
         "-f", "--file", help="File containing URLs (one per line)")
     parser.add_argument("-o", "--output", help="Output file (single URL only)")
     parser.add_argument("-d", "--dir", help="Output directory")
+    parser.add_argument("-k", "--insecure", action="store_true", help="Allow insecure server connections when using SSL")
 
     args = parser.parse_args()
+
+    if args.insecure:
+        CONFIG["verify_ssl"] = False
 
     if args.dir:
         CONFIG["output_dir"] = args.dir
